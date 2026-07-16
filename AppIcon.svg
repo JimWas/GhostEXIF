@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="background" cx="50%" cy="46%" r="70%">
+      <stop offset="0" stop-color="#062412"/>
+      <stop offset="0.55" stop-color="#020b06"/>
+      <stop offset="1" stop-color="#000000"/>
+    </radialGradient>
+    <linearGradient id="xFill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0" stop-color="#b8ffca"/>
+      <stop offset="0.28" stop-color="#00ff4c"/>
+      <stop offset="0.72" stop-color="#00c93d"/>
+      <stop offset="1" stop-color="#70ff9b"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="24" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="xClip">
+      <path d="M275 216 L425 216 L512 367 L599 216 L749 216 L594 487 L760 808 L608 808 L512 609 L416 808 L264 808 L430 487 Z"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#background)"/>
+
+  <g fill="none" stroke="#00ff4c">
+    <circle cx="512" cy="512" r="410" opacity="0.09" stroke-width="2"/>
+    <circle cx="512" cy="512" r="310" opacity="0.11" stroke-width="2"/>
+    <circle cx="512" cy="512" r="210" opacity="0.14" stroke-width="2"/>
+    <path d="M72 512 H952 M512 72 V952" opacity="0.08" stroke-width="2"/>
+    <path d="M142 288 H882 M142 736 H882 M288 142 V882 M736 142 V882" opacity="0.045" stroke-width="2"/>
+  </g>
+
+  <path d="M275 216 L425 216 L512 367 L599 216 L749 216 L594 487 L760 808 L608 808 L512 609 L416 808 L264 808 L430 487 Z"
+        fill="#00f248" stroke="#b8ffca" stroke-width="7"/>
+
+  <g clip-path="url(#xClip)" fill="#001407" opacity="0.72">
+    <rect x="200" y="292" width="624" height="9"/>
+    <rect x="200" y="372" width="624" height="7"/>
+    <rect x="200" y="452" width="624" height="10"/>
+    <rect x="200" y="532" width="624" height="7"/>
+    <rect x="200" y="612" width="624" height="10"/>
+    <rect x="200" y="692" width="624" height="7"/>
+    <rect x="200" y="772" width="624" height="9"/>
+  </g>
+
+  <g fill="none" stroke="#00ff4c" stroke-width="17" opacity="0.62" filter="url(#softGlow)">
+    <path d="M104 254 V104 H254"/>
+    <path d="M770 104 H920 V254"/>
+    <path d="M104 770 V920 H254"/>
+    <path d="M770 920 H920 V770"/>
+  </g>
+
+  <g fill="#00ff4c" opacity="0.7">
+    <circle cx="104" cy="512" r="6"/><circle cx="920" cy="512" r="6"/>
+    <circle cx="512" cy="104" r="6"/><circle cx="512" cy="920" r="6"/>
+  </g>
+</svg>
