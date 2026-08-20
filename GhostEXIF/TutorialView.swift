@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TutorialView: View {
     @Binding var isPresented: Bool
+    var onCompletion: () -> Void = {}
     @State private var currentPage = 0
 
     let pages = [
@@ -17,7 +18,7 @@ struct TutorialView: View {
         ),
         TutorialPage(
             title: "LOCAL_PROCESSING",
-            description: "GhostEXIF does not upload your media, create an account, track you, or collect analytics. You decide when a processed copy is saved or shared.",
+            description: "GhostEXIF never uploads your media. Standard Mode uses Google ads. After training, iOS will ask whether advertising may use your device identifier; choosing Ask App Not to Track still allows non-personalized ads.",
             icon: "lock.iphone"
         )
     ]
@@ -32,7 +33,7 @@ struct TutorialView: View {
                     Text("TRAINING_MODULE_\(currentPage + 1)/\(pages.count)")
                         .matrixText(size: 12, color: Theme.terminalCyan)
                     Spacer()
-                    Button(action: { isPresented = false }) {
+                    Button(action: completeTutorial) {
                         Text("[ SKIP ]")
                             .matrixText(size: 12, color: Theme.errorRed)
                     }
@@ -77,7 +78,7 @@ struct TutorialView: View {
                         if currentPage < pages.count - 1 {
                             currentPage += 1
                         } else {
-                            isPresented = false
+                            completeTutorial()
                         }
                     }) {
                         Text(currentPage < pages.count - 1 ? "NEXT_NODE >" : "INITIALIZE_CORE")
@@ -90,6 +91,11 @@ struct TutorialView: View {
                 .padding()
             }
         }
+    }
+
+    private func completeTutorial() {
+        onCompletion()
+        isPresented = false
     }
 }
 

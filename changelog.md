@@ -6,6 +6,8 @@ All notable GhostEXIF changes should be recorded here. Dates use `YYYY-MM-DD`.
 
 ### Added
 
+- One-time post-onboarding Premium offer with localized StoreKit pricing, accurate feature disclosure, purchase, restore, Not Now, and privacy-policy actions.
+- Verified StoreKit 2 non-consumable Premium purchase, launch-time entitlement refresh, transaction-update handling, localized pricing, and explicit Restore Purchases support.
 - Google Mobile Ads 13.6.0 and User Messaging Platform 3.1.0 through Swift Package Manager.
 - Consent-gated native test ad at the bottom of the home screen, including AdChoices and ad attribution.
 - UMP privacy-options entry point in Settings when required.
@@ -26,6 +28,9 @@ All notable GhostEXIF changes should be recorded here. Dates use `YYYY-MM-DD`.
 
 ### Changed
 
+- Replaced the freely editable, device-local Premium toggle with the verified `JimWas.GhostEXIF.premium` App Store entitlement.
+- First-run onboarding now discloses advertising and reliably triggers ATT after the tutorial/required consent UI has closed.
+- Added Google ad-serving tracking domains to the app privacy manifest and switched the JimWas website link to HTTPS.
 - Premium Mode now hides advertising; Standard Mode displays the native ad when consent allows.
 - Ad initialization now waits for UMP consent status and ATT resolution.
 - Added AdMob application metadata, Google's current SKAdNetwork identifiers, and tracking disclosure.
@@ -37,6 +42,12 @@ All notable GhostEXIF changes should be recorded here. Dates use `YYYY-MM-DD`.
 - The editor's left pane scrolls so the added controls remain usable on compact iPhones.
 - Identity dictionaries are synchronized from visible staged fields during export instead of silently retaining removed source tags.
 - Processed output becomes the active working file and refreshes both parsed and raw metadata.
+
+### Fixed
+
+- Local photo previews no longer remain on an endless Visual Scan spinner; the editor now reads temporary image files directly and shows an explicit failure state when decoding fails.
+- Matrix rain characters now use their positions as SwiftUI identities, eliminating duplicate `ForEach` ID warnings.
+- Opaque JPEG target-size rendering no longer carries an unnecessary alpha channel.
 
 ## 1.0.0 - 2026-07-16
 

@@ -5,8 +5,10 @@ import AppTrackingTransparency
 struct MainMenuView: View {
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("hasCompletedTutorial") private var hasCompletedTutorial: Bool = false
-    @AppStorage("premiumModeEnabled") private var premiumModeEnabled: Bool = false
+    @AppStorage("hasShownPremiumOffer") private var hasShownPremiumOffer: Bool = false
+    @ObservedObject private var purchases = PurchaseManager.shared
     @State private var isShowingTutorial = false
+    @State private var isShowingPremiumOffer = false
     @State private var selectedItems: [PhotosPickerItem] = []
     @State private var isShowingPicker = false
     @State private var isShowingFilePicker = false
@@ -47,7 +49,7 @@ struct MainMenuView: View {
 
                 Spacer()
 
-                if !premiumModeEnabled {
+                if !purchases.hasPremium {
                     NativeAdFooter()
                         .padding(.horizontal, 12)
                         .padding(.bottom, 6)
@@ -70,19 +72,23 @@ struct MainMenuView: View {
             BatchProcessorView(urls: batch.urls)
         }
         .fullScreenCover(isPresented: $isShowingTutorial) {
-            TutorialView(isPresented: $isShowingTutorial)
-                .onDisappear { hasCompletedTutorial = true }
+            TutorialView(isPresented: $isShowingTutorial) {
+                hasCompletedTutorial = true
+            }
+        }
+        .fullScreenCover(isPresented: $isShowingPremiumOffer, onDismiss: premiumOfferDidDismiss) {
+            PremiumOfferView()
         }
         .onAppear {
             if !hasCompletedTutorial {
                 isShowingTutorial = true
             } else {
-                requestTrackingAuthorizationIfNeeded()
+                presentPremiumOfferOrContinue()
             }
         }
         .onChange(of: hasCompletedTutorial) { completed in
             if completed {
-                requestTrackingAuthorizationIfNeeded()
+                presentPremiumOfferOrContinue()
             } else {
                 Task { @MainActor in
                     try? await Task.sleep(nanoseconds: 350_000_000)
@@ -90,6 +96,11 @@ struct MainMenuView: View {
                         isShowingTutorial = true
                     }
                 }
+            }
+        }
+        .onChange(of: isShowingTutorial) { isShowing in
+            if !isShowing, hasCompletedTutorial {
+                presentPremiumOfferOrContinue()
             }
         }
         .onChange(of: scenePhase) { phase in
@@ -159,7 +170,7 @@ struct MainMenuView: View {
 
     private var footerStatus: some View {
         HStack {
-            Text(premiumModeEnabled ? "MODE: PREMIUM" : "MODE: STANDARD")
+            Text(purchases.hasPremium ? "MODE: PREMIUM" : "MODE: STANDARD")
             Spacer()
             Text("MEDIA: STAYS_LOCAL")
             Spacer()
@@ -236,7 +247,9 @@ struct MainMenuView: View {
 
     private func requestTrackingAuthorizationIfNeeded() {
         guard hasCompletedTutorial,
+              hasShownPremiumOffer,
               !isShowingTutorial,
+              !isShowingPremiumOffer,
               scenePhase == .active,
               !trackingPromptScheduled else {
             return
@@ -252,7 +265,35 @@ struct MainMenuView: View {
             }
 
             AdMobCoordinator.shared.startMobileAdsIfAllowed()
+            trackingPromptScheduled = false
         }
+    }
+
+    private func presentPremiumOfferOrContinue() {
+        guard hasCompletedTutorial, !isShowingTutorial else { return }
+
+        guard !hasShownPremiumOffer else {
+            requestTrackingAuthorizationIfNeeded()
+            return
+        }
+
+        Task { @MainActor in
+            // Give StoreKit's launch entitlement refresh time to identify existing owners.
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard !hasShownPremiumOffer, !isShowingTutorial, !isShowingPremiumOffer else { return }
+
+            if purchases.hasPremium {
+                hasShownPremiumOffer = true
+                requestTrackingAuthorizationIfNeeded()
+            } else {
+                isShowingPremiumOffer = true
+            }
+        }
+    }
+
+    private func premiumOfferDidDismiss() {
+        hasShownPremiumOffer = true
+        requestTrackingAuthorizationIfNeeded()
     }
 }
 

@@ -1,10 +1,11 @@
 import SwiftUI
+import StoreKit
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("premiumModeEnabled") private var premiumModeEnabled = false
     @AppStorage("hasCompletedTutorial") private var hasCompletedTutorial = false
     @ObservedObject private var ads = AdMobCoordinator.shared
+    @ObservedObject private var purchases = PurchaseManager.shared
 
     @State private var isConfirmingTutorialReset = false
     @State private var isConfirmingFullReset = false
@@ -12,7 +13,7 @@ struct SettingsView: View {
 
     private let xURL = URL(string: "https://x.com/JimWashkau")!
     private let githubURL = URL(string: "https://github.com/jimwas")!
-    private let websiteURL = URL(string: "http://JimWashkau.com")!
+    private let websiteURL = URL(string: "https://JimWashkau.com")!
 
     var body: some View {
         NavigationStack {
@@ -22,18 +23,52 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(spacing: 18) {
                         settingsSection("ACCESS_CONTROL") {
-                            Toggle(isOn: $premiumModeEnabled) {
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(purchases.hasPremium ? "PREMIUM_ACTIVE" : "PREMIUM_UPGRADE")
+                                    .matrixText(size: 15, color: Theme.matrixGreen)
+                                Text(purchases.hasPremium ? "Verified App Store entitlement • ads disabled" : "One-time App Store purchase • removes advertising")
+                                    .matrixText(size: 10, color: Theme.terminalCyan)
+                            }
+
+                            if !purchases.hasPremium {
+                                Button {
+                                    Task { await purchases.purchasePremium() }
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "crown")
+                                        Text(purchaseButtonTitle)
+                                            .lineLimit(1)
+                                            .minimumScaleFactor(0.7)
+                                        Spacer()
+                                        if purchases.isWorking {
+                                            ProgressView().tint(Theme.matrixGreen)
+                                        }
+                                    }
+                                    .matrixText(size: 12, color: Theme.matrixGreen)
+                                    .padding(12)
+                                    .border(Theme.matrixGreen.opacity(0.6))
+                                }
+                                .disabled(purchases.isWorking)
+                            }
+
+                            Button {
+                                Task { await purchases.restorePurchases() }
+                            } label: {
+                                HStack {
+                                    Image(systemName: "arrow.clockwise.icloud")
+                                    Text("RESTORE_PURCHASES")
+                                    Spacer()
+                                }
+                                .matrixText(size: 12, color: Theme.terminalCyan)
+                            }
+                            .disabled(purchases.isWorking)
+
+                            if let statusMessage = purchases.statusMessage {
                                 VStack(alignment: .leading, spacing: 5) {
-                                    Text("PREMIUM_MODE")
-                                        .matrixText(size: 15, color: Theme.matrixGreen)
-                                    Text("Device-local premium preference")
-                                        .matrixText(size: 10, color: Theme.terminalCyan)
+                                    Text(statusMessage)
+                                        .matrixText(size: 10, color: purchases.hasPremium ? Theme.matrixGreen : Theme.terminalCyan)
                                 }
                             }
-                            .tint(Theme.matrixGreen)
-
-                            Text("Premium Mode hides advertising on this device. It is not yet an App Store purchase entitlement.")
-                                .matrixText(size: 10, color: Theme.matrixGreen.opacity(0.65))
                         }
 
                         if ads.isPrivacyOptionsRequired {
@@ -168,7 +203,6 @@ struct SettingsView: View {
             if let bundleIdentifier = Bundle.main.bundleIdentifier {
                 UserDefaults.standard.removePersistentDomain(forName: bundleIdentifier)
             }
-            premiumModeEnabled = false
             hasCompletedTutorial = false
             dismiss()
         } catch {
@@ -178,6 +212,13 @@ struct SettingsView: View {
 
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+    }
+
+    private var purchaseButtonTitle: String {
+        guard let product = purchases.premiumProduct else {
+            return "CHECK_PREMIUM_AVAILABILITY"
+        }
+        return "UNLOCK_PREMIUM • \(product.displayPrice)"
     }
 }
 

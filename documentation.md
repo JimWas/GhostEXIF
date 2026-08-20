@@ -11,7 +11,9 @@ The deployment target is iOS 16.6. The app target is `GhostEXIF`, the bundle ide
 - `GhostEXIFApp.swift`: application entry point.
 - `MainMenuView.swift`: branded home screen, onboarding, Photos picker, file importer, settings/privacy entry points, and App Tracking Transparency request.
 - `MediaImport.swift`: safe, independent temporary copies of Photos-picker and security-scoped files, plus scoped temporary-media cleanup.
-- `SettingsView.swift`: Premium Mode preference, reset controls, version display, and JimWas links.
+- `SettingsView.swift`: verified Premium purchase/restore controls, reset controls, version display, and JimWas links.
+- `PurchaseManager.swift`: StoreKit 2 product loading, cryptographic transaction verification, entitlement refresh, transaction updates, purchasing, and user-initiated restore.
+- `PremiumOfferView.swift`: one-time post-onboarding Premium offer with localized price, accurate benefits, purchase/restore actions, and privacy-policy access.
 - `AdMobCoordinator.swift`: UMP consent refresh, privacy-options presentation, and one-time Mobile Ads initialization.
 - `NativeAdFooter.swift`: native-ad loading and the compact UIKit-backed native creative used on the home screen.
 - `EditorView.swift`: inspector, metadata staging, privacy actions, output controls, saving, and sharing.
@@ -114,13 +116,14 @@ The app integrates Google Mobile Ads 13.6.0 and User Messaging Platform 3.1.0 th
 
 The launch sequence is intentionally ordered:
 
-1. Complete onboarding.
-2. Request the current UMP consent status and present any required consent form.
-3. Resolve App Tracking Transparency when its status is still undetermined.
-4. Initialize Google Mobile Ads only when UMP reports that ads may be requested.
-5. Load one native ad without automatic failure retries.
+1. Complete onboarding, including the advertising disclosure.
+2. Show the one-time Premium offer unless it has already been shown or a verified Premium entitlement exists.
+3. Request the current UMP consent status and present any required consent form.
+4. Resolve App Tracking Transparency on that first run when its status is still undetermined.
+5. Initialize Google Mobile Ads only when UMP reports that ads may be requested.
+6. Load one native ad without automatic failure retries.
 
-Settings exposes `MANAGE_AD_PRIVACY` whenever UMP requires a persistent privacy-options entry point. The app privacy manifest declares tracking because personalized advertising may be used when authorized. Google SDK privacy manifests are embedded through the package dependency.
+Settings exposes `MANAGE_AD_PRIVACY` whenever UMP requires a persistent privacy-options entry point. The app privacy manifest declares tracking because personalized advertising may be used when authorized, and lists the Google ad-serving domains used for that tracking. Google SDK privacy manifests are embedded through the package dependency.
 
 `Info.plist` currently uses the production GhostEXIF AdMob identifiers:
 
@@ -135,9 +138,11 @@ Before release, update the public privacy policy and App Store Connect App Priva
 
 The gear button on the home-screen header opens `SettingsView`.
 
-- `premiumModeEnabled` is stored with `@AppStorage`. It changes the home-screen mode indicator and hides native advertising. It remains a device-local product preference, not a StoreKit purchase or subscription entitlement. Replace this source of truth with verified StoreKit 2 transaction state before charging for premium access.
+- Premium is the non-consumable StoreKit product `JimWas.GhostEXIF.premium`. `PurchaseManager` accepts only verified transactions for that exact identifier, listens for transaction updates, refreshes `Transaction.currentEntitlements` at launch, and hides advertising only while that entitlement is active and not revoked.
+- The purchase button uses StoreKit's localized `displayPrice`. `RESTORE_PURCHASES` is the explicit user action that calls `AppStore.sync()` before re-reading entitlements.
+- Create the product in App Store Connect with the exact identifier `JimWas.GhostEXIF.premium`, complete its price/localization/review metadata, and submit it with the app version. A missing or mismatched product remains unavailable in the UI.
 - `hasCompletedTutorial` is also stored with `@AppStorage`. Resetting it dismisses Settings and presents onboarding again.
-- Reset All removes the app's UserDefaults domain and calls `MediaFileStore.clearTemporaryMediaFiles()`.
+- Reset All removes the app's UserDefaults domain and calls `MediaFileStore.clearTemporaryMediaFiles()`. It does not revoke or erase an App Store entitlement; StoreKit restores that verified state.
 - Temporary cleanup deletes the `GhostEXIFImports` folder and legacy UUID-named image/video outputs in the app's own temporary directory. It never accesses or deletes Photos-library originals.
 - App Tracking Transparency authorization belongs to iOS and cannot be reset programmatically. Users change it in the system Settings app.
 
@@ -195,6 +200,7 @@ The local simulator service has previously stalled while initiating XCTest. `bui
 - Verify the 1024-pixel icon has no alpha channel.
 - Review ATT, AdMob, privacy manifest, privacy policy, and App Store privacy answers together.
 - Confirm the production AdMob identifiers and configure UMP messages in AdMob Privacy & messaging.
+- Create and submit the non-consumable `JimWas.GhostEXIF.premium` in App Store Connect, then test purchase, cancel, pending approval, restore, refund/revocation, reinstall, and offline launch with sandbox accounts on physical devices.
 - Exercise consent-required, consent-not-required, ATT-allowed, and ATT-denied paths on physical devices using test ads.
 - Archive using an Apple Distribution identity and App Store provisioning profile.
 - Test the uploaded build through TestFlight on a physical device.

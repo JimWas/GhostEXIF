@@ -9,9 +9,14 @@ import SwiftUI
 
 @main
 struct GhostEXIFApp: App {
+    @StateObject private var purchases = PurchaseManager.shared
+
     var body: some Scene {
         WindowGroup {
             MainMenuView()
+                .task {
+                    await purchases.prepare()
+                }
         }
     }
 }

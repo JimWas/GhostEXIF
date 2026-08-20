@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 import UniformTypeIdentifiers
 import AVKit
 import ImageIO
@@ -30,6 +31,8 @@ struct EditorView: View {
     @State private var isProcessing = false
     @State private var stagedHistory: [EditorSnapshot] = []
     @State private var isShowingHomeConfirmation = false
+    @State private var previewImage: UIImage?
+    @State private var previewLoadFailed = false
 
     init(mediaURL: URL) {
         self.mediaURL = mediaURL
@@ -206,9 +209,19 @@ struct EditorView: View {
     @ViewBuilder
     private var mediaPreview: some View {
         if utType.conforms(to: .image) {
-            AsyncImage(url: workingMediaURL) { image in
-                image.resizable().scaledToFit()
-            } placeholder: {
+            if let previewImage {
+                Image(uiImage: previewImage)
+                    .resizable()
+                    .scaledToFit()
+            } else if previewLoadFailed {
+                VStack(spacing: 6) {
+                    Image(systemName: "photo.badge.exclamationmark")
+                    Text("PREVIEW_UNAVAILABLE")
+                        .matrixText(size: 7, color: Theme.errorRed)
+                }
+                .foregroundColor(Theme.errorRed)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
                 ProgressView().tint(Theme.matrixGreen)
             }
         } else {
@@ -351,6 +364,25 @@ struct EditorView: View {
         if let type = UTType(filenameExtension: workingMediaURL.pathExtension) {
             self.utType = type
             metadataManager.loadMetadata(from: workingMediaURL, type: type)
+            loadPreview(for: workingMediaURL, type: type)
+        } else {
+            previewLoadFailed = true
+        }
+    }
+
+    private func loadPreview(for url: URL, type: UTType) {
+        previewImage = nil
+        previewLoadFailed = false
+        guard type.conforms(to: .image) else { return }
+
+        Task {
+            let data = await Task.detached(priority: .userInitiated) {
+                try? Data(contentsOf: url, options: [.mappedIfSafe])
+            }.value
+
+            guard url == workingMediaURL else { return }
+            previewImage = data.flatMap(UIImage.init(data:))
+            previewLoadFailed = previewImage == nil
         }
     }
 
@@ -359,6 +391,7 @@ struct EditorView: View {
         utType = outputType
         workingMediaURL = url
         metadataManager.loadMetadata(from: url, type: outputType)
+        loadPreview(for: url, type: outputType)
         do {
             try await metadataManager.saveToPhotos(url: url)
             Haptics.success()
@@ -381,6 +414,7 @@ struct EditorView: View {
         workingMediaURL = url
         utType = outputType
         metadataManager.loadMetadata(from: url, type: outputType)
+        loadPreview(for: url, type: outputType)
         alertMessage = message
         isShowingAlert = true
     }
@@ -391,6 +425,7 @@ struct EditorView: View {
         utType = snapshot.type
         metadataManager.rawMetadata = snapshot.rawMetadata
         metadataManager.fields = snapshot.fields
+        loadPreview(for: snapshot.mediaURL, type: snapshot.type)
         alertMessage = stagedHistory.isEmpty
             ? "STAGED_PRIVACY_CHANGES_DISCARDED."
             : "RETURNED_TO_PREVIOUS_STAGE."

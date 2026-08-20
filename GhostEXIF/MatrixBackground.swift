@@ -27,9 +27,10 @@ struct MatrixColumn: View {
     @State private var offset: CGFloat = 0
 
     var body: some View {
+        let characters = Array(text)
         VStack(spacing: 0) {
-            ForEach(text.map { String($0) }, id: \.self) { char in
-                Text(char)
+            ForEach(characters.indices, id: \.self) { index in
+                Text(String(characters[index]))
                     .font(.system(size: 12, weight: .bold, design: .monospaced))
                     .foregroundColor(Theme.matrixGreen.opacity(0.15))
             }
